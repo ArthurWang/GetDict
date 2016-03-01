@@ -8,7 +8,7 @@ import codecs
 import time
 import sys
 
-def get_defination(word):
+def get_defination_from_baidu(word):
     url="http://dict.baidu.com/s?device=mobile&wd=" + word.strip().replace(' ', '+')
 
     req = urllib.request.Request(
@@ -39,6 +39,42 @@ def get_defination(word):
     return (' ').join(p_list)
 
 
+def get_defination_from_bing(word):
+    url="http://cn.bing.com/dict/?q=" + word.strip().replace(' ', '+')
+
+    req = urllib.request.Request(
+        url, 
+        data=None, 
+        headers={
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2486.0 Safari/537.36 Edge/13.10586'
+        }
+    )
+
+    try:
+        response = urllib.request.urlopen(req)
+        html = response.read()
+    except Exception as e:
+        print(e)
+        return None
+
+    soup = BeautifulSoup(html,'html.parser')
+
+
+    li_list = soup.find_all('ul')[1].find_all('li')
+    if li_list == None:
+        response.close()
+        return li_list
+    response.close()
+    
+    # remove 网络
+    defination = ''
+    for li in li_list:
+        if li.get_text().startswith('网络'):
+            continue
+        defination += li.get_text()
+            
+    return defination
+
 # Script starts from here
 if len(sys.argv) < 2:
     print('Usage: GetDict.py source_word_list.txt target_output_file.txt')
@@ -57,7 +93,7 @@ for word in input_file:
     if word.strip() == '':
         continue
     while True:
-        definations = get_defination(word.strip())
+        definations = get_defination_from_bing(word.strip())
         if definations != None:
             break
         print('Retry..................................', end='')
