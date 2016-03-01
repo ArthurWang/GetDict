@@ -8,7 +8,7 @@ import codecs
 import time
 import sys
 
-def get_defination_from_baidu(word):
+def get_definition_from_baidu(word):
     url="http://dict.baidu.com/s?device=mobile&wd=" + word.strip().replace(' ', '+')
 
     req = urllib.request.Request(
@@ -39,7 +39,7 @@ def get_defination_from_baidu(word):
     return (' ').join(p_list)
 
 
-def get_defination_from_bing(word):
+def get_definition_from_bing(word):
     url="http://cn.bing.com/dict/?q=" + word.strip().replace(' ', '+')
 
     req = urllib.request.Request(
@@ -67,13 +67,37 @@ def get_defination_from_bing(word):
     response.close()
     
     # remove 网络
-    defination = ''
+    definition = ''
     for li in li_list:
         if li.get_text().startswith('网络'):
             continue
-        defination += li.get_text()
+        definition += li.get_text()
             
-    return defination
+    return definition
+
+
+import sqlite3
+
+DB_FILE_PATH = 'D:\dict.sqlite'
+TABLE_NAME = 'dict'
+
+def get_all_definition():
+    con = sqlite3.connect(DB_FILE_PATH)
+    con.isolation_level = None
+    cur = con.cursor()
+    cur.execute("select * from dict limit 0,20")
+    for row in cur:
+        if row[2] == None:
+            definition = get_definition_from_bing(row[1])
+            sql = 'UPDATE dict SET zh = ? WHERE id= ?'
+            con.execute(sql, (definition, row[0]))
+            print("({})[{}][{}]".format(row[0], row[1].strip(),definition))
+    cur.close()
+    con.close()
+
+get_all_definition()
+sys.exit()
+
 
 # Script starts from here
 if len(sys.argv) < 2:
@@ -87,19 +111,19 @@ input_file = open(sys.argv[1], 'rU')
 # open output file
 output_file = codecs.open(sys.argv[2],"w","utf-8")
 
-# get word's defination and write to file
+# get word's definition and write to file
 for word in input_file:
 
     if word.strip() == '':
         continue
     while True:
-        definations = get_defination_from_bing(word.strip())
-        if definations != None:
+        definitions = get_definition_from_bing(word.strip())
+        if definitions != None:
             break
         print('Retry..................................', end='')
         print(word)
     
-    line = word.strip() + '\t' + definations
+    line = word.strip() + '\t' + definitions
     print(line)
     print(line, file=output_file)
     #time.sleep(1)
